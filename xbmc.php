@@ -226,10 +226,11 @@ class xbmcJsonRPC {
 		$json = array(
 			'jsonrpc' => '2.0',
 			'method' => $method,
-			'params' => $params,
 			'id' => $uid
 		);
-
+		if($params != null)
+			$json['params'] = $params;
+		
 		$request = json_encode($json);
 		
 		$ch = curl_init();
@@ -240,7 +241,7 @@ class xbmcJsonRPC {
 		$responseRaw = curl_exec($ch);
 		
 		$response = json_decode($responseRaw);
-
+		
 		if ($response->id != $uid) {
 			throw new xbmcError('JSON-RPC ID Mismatch');
 		}
@@ -265,12 +266,13 @@ class xbmcJson extends xbmcJsonRPC {
 	
 	public function __construct(xbmcHost $xbmcHost) {
 		parent::setUrl($xbmcHost->url());
-		$this->populateCommands($this->rpc("JSONRPC.Introspect")->commands);
+		$this->populateCommands($this->rpc("JSONRPC.Introspect")->methods);
 	}
 	
 	private function populateCommands($remoteCommands) {
-		foreach($remoteCommands as $remoteCommand) {
-			$rpcCommand = explode(".", $remoteCommand->command);
+		
+		foreach($remoteCommands as $cmd => $remoteCommand) {
+			$rpcCommand = explode(".", $cmd);
 			if(!class_exists($rpcCommand[0])) {
 				$this->$rpcCommand[0] = new xbmcJsonCommand($rpcCommand[0], parent::getUrl(), $this);
 			}
